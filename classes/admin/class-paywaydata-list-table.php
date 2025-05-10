@@ -1,39 +1,41 @@
 <?php
 
-if ( ! class_exists( 'WP_List_Table' ) ) {
-	require_once( ABSPATH . 'wp-admin/includes/class-wp-list-table.php' );
+if (! class_exists('WP_List_Table')) {
+	require_once(ABSPATH . 'wp-admin/includes/class-wp-list-table.php');
 }
 
-class PayWayData_List_Table extends WP_List_Table {
+class PayWayData_List_Table extends WP_List_Table
+{
 
 	/**
 	 * Prepare the items for the table to process
 	 *
 	 * @return Void
 	 */
-	public function prepare_items() {
-		$columns  = $this->get_columns();
-		$hidden   = $this->get_hidden_columns();
-		$sortable = $this->get_sortable_columns();
+	public function prepare_items()
+	{
+		$columns       = $this->get_columns();
+		$hidden        = $this->get_hidden_columns();
+		$sortable      = $this->get_sortable_columns();
+		$all_data      = $this->table_data();
+		$processed     = $this->sort_data($all_data);
+		$per_page      = 20;
+		$current_page  = $this->get_pagenum();
+		$total_items   = count($processed);
 
-		$data = $this->table_data();
-		usort( $data, array( &$this, 'sort_data' ) );
+		$this->set_pagination_args([
+			'total_items' => $total_items,
+			'per_page'    => $per_page,
+		]);
 
-		$per_page     = 20;
-		$current_page = $this->get_pagenum();
-		$total_items  = count( $data );
-
-		$this->set_pagination_args(
-			array(
-				'total_items' => $total_items,
-				'per_page'    => $per_page,
-			)
+		$page_data = array_slice(
+			$processed,
+			($current_page - 1) * $per_page,
+			$per_page
 		);
 
-		$data = array_slice( $data, ( ( $current_page - 1 ) * $per_page ), $per_page );
-
-		$this->_column_headers = array( $columns, $hidden, $sortable );
-		$this->items           = $data;
+		$this->_column_headers = [$columns, $hidden, $sortable];
+		$this->items           = $page_data;
 	}
 
 	/**
@@ -41,18 +43,17 @@ class PayWayData_List_Table extends WP_List_Table {
 	 *
 	 * @return Array
 	 */
-	public function get_columns() {
-		$columns = array(
+	public function get_columns()
+	{
+		return [
 			'id'                 => 'ID',
 			'transaction_id'     => 'Transaction ID',
 			'response_code'      => 'Response Code',
-			'response_code_desc' => 'Response Code Description',
+			'response_code_desc' => 'Response Description',
 			'amount'             => 'Amount',
 			'or_date'            => 'Date',
 			'status'             => 'Status',
-		);
-
-		return $columns;
+		];
 	}
 
 	/**
@@ -60,8 +61,9 @@ class PayWayData_List_Table extends WP_List_Table {
 	 *
 	 * @return Array
 	 */
-	public function get_hidden_columns() {
-		return array();
+	public function get_hidden_columns()
+	{
+		return [];
 	}
 
 	/**
@@ -69,8 +71,12 @@ class PayWayData_List_Table extends WP_List_Table {
 	 *
 	 * @return Array
 	 */
-	public function get_sortable_columns() {
-		return array( 'title' => array( 'title', false ) );
+	public function get_sortable_columns()
+	{
+		return [
+			'transaction_id' => ['transaction_id', false],
+			'or_date'        => ['or_date', true],
+		];
 	}
 
 	/**
@@ -78,16 +84,27 @@ class PayWayData_List_Table extends WP_List_Table {
 	 *
 	 * @return Array
 	 */
-	private function table_data() {
+	private function table_data()
+	{
 		global $wpdb;
 
-		$res = array();
+		$table = $wpdb->prefix . 'tpayway_ipg';
+		$cache_key = 'tpayway_ipg_all';
 
-		$table_name = $wpdb->prefix . 'tpayway_ipg';
+		$rows = wp_cache_get($cache_key, 'payway');
+		if (false === $rows) {
+			$rows = $wpdb->get_results(
+				$wpdb->prepare(
+					"SELECT * FROM {$table} WHERE %d = %d",
+					1,
+					1
+				),
+				ARRAY_A
+			);
+			wp_cache_set($cache_key, $rows, 'payway', HOUR_IN_SECONDS);
+		}
 
-		$res = $wpdb->get_results( 'SELECT * FROM ' . $table_name, ARRAY_A );
-
-		return $res;
+		return $rows;
 	}
 
 	/**
@@ -98,20 +115,12 @@ class PayWayData_List_Table extends WP_List_Table {
 	 *
 	 * @return Mixed
 	 */
-	public function column_default( $item, $column_name ) {
-		switch ( $column_name ) {
-			case 'id':
-			case 'transaction_id':
-			case 'response_code':
-			case 'response_code_desc':
-			case 'amount':
-			case 'or_date':
-			case 'status':
-				return $item[ $column_name ];
-
-			default:
-				return print_r( $item, true );
+	public function column_default($item, $column_name)
+	{
+		if (isset($item[$column_name])) {
+			return esc_html($item[$column_name]);
 		}
+		return '';
 	}
 
 	/**
@@ -119,27 +128,27 @@ class PayWayData_List_Table extends WP_List_Table {
 	 *
 	 * @return Mixed
 	 */
-	private function sort_data( $a, $b ) {
-		// Set defaults
+	private function sort_data(array $data)
+	{
+		// Default sort
 		$orderby = 'transaction_id';
 		$order   = 'desc';
 
-		// If orderby is set, use this as the sort column
-		if ( ! empty( $_GET['orderby'] ) ) {
-			$orderby = $_GET['orderby'];
+		if (isset($_GET['orderby'])) {
+			$orderby = sanitize_key(wp_unslash($_GET['orderby']));
+		}
+		if (isset($_GET['order'])) {
+			$ord = strtoupper(wp_unslash($_GET['order']));
+			if (in_array($ord, ['ASC', 'DESC'], true)) {
+				$order = strtolower($ord);
+			}
 		}
 
-		// If order is set use this as the order
-		if ( ! empty( $_GET['order'] ) ) {
-			$order = $_GET['order'];
-		}
+		usort($data, function ($a, $b) use ($orderby, $order) {
+			$result = strnatcmp($a[$orderby], $b[$orderby]);
+			return ('asc' === $order) ? $result : -$result;
+		});
 
-		$result = strnatcmp( $a[ $orderby ], $b[ $orderby ] );
-
-		if ( 'asc' === $order ) {
-			return $result;
-		}
-
-		return -$result;
+		return $data;
 	}
 }

@@ -1,4 +1,20 @@
-# Woocommerce HT PayWay
+/*
+ * Plugin Name: PayWay Hrvatski Telekom payment gateway for WooCommerce
+ * Plugin URI:  https://github.com/marinsagovac/woocommerce-tcom-payway
+ * Description: PayWay Hrvatski Telekom payment gateway for WooCommerce
+ * Version:     1.8.6
+ * Stable Tag:  1.8.6
+ * Tested up to: 6.8
+ * License:     MIT
+ * License URI: http://opensource.org/licenses/MIT
+ * Author:      Marin Šagovac
+ * Developers:  Marin Šagovac, Matija Kovačević, Danijel Gubić, Ivan Švaljek, Micemade, 9jaDevo, Danijel-kt, nine-2-five, Chidiebere Chukwudi
+ * Text Domain: woocommerce-tcom-payway
+ * Domain Path: /languages
+ * Contributors: marinsagovac, michaelakinwumi
+ */
+ 
+# PayWay Hrvatski Telekom payment gateway for WooCommerce
 
 [![build-test](https://github.com/marinsagovac/woocommerce-tcom-payway/actions/workflows/wordpress-plugin-check.yml/badge.svg?branch=master)](https://github.com/marinsagovac/woocommerce-tcom-payway/actions/workflows/wordpress-plugin-check.yml)
 
@@ -69,6 +85,11 @@ Old releases (deprecated):
 * Release [1.2](https://github.com/marinsagovac/woocommerce-tcom-payway/releases/tag/1.2)
 * Release [1.1](https://github.com/marinsagovac/woocommerce-tcom-payway/releases/tag/1.1)
 
+
+## Stable Tag
+
+Stable Tag: **1.8.6**  
+
 ## INSTALLATION
 
 Download ZIP archive, upload via plugin page and apply package. Activate plugin. Change settings under Woocomerce settings page on the checkout page.
@@ -91,11 +112,6 @@ We're continuing to improving, upgrading and fixing our repository using open so
 A source code is an open-sourced and is under [MIT license](http://opensource.org/licenses/MIT) and is possible to change or improve code.
 
 ![Security](assets/images/payway.png)
-
-## DEPRECATED DOCUMENTATIONS
-
-Under wiki are screenshots of settings and admin preview of payments: [here](https://github.com/marinsagovac/woocommerce-tcom-payway/wiki/Deprecated-docs)
-`docs` folder has been removed from 1.8.7 version.
 
 ## TIP
 

@@ -316,7 +316,8 @@ class WC_TPAYWAY extends WC_Payment_Gateway
         $check_order = wp_cache_get($cache_key);
 
         if ($check_order === false) {
-            $sql = $wpdb->prepare("SELECT COUNT(*) FROM " . $table_name . " WHERE transaction_id = %s", $order_id);
+            $table_name_safe = esc_sql($wpdb->prefix . 'tpayway_ipg');
+            $sql = $wpdb->prepare("SELECT COUNT(*) FROM {$table_name_safe} WHERE transaction_id = %s", $order_id);
             $check_order = $wpdb->get_var($sql);
             wp_cache_set($cache_key, $check_order, '', 3600); // Cache for 1 hour
         }
@@ -483,7 +484,7 @@ class WC_TPAYWAY extends WC_Payment_Gateway
                     $admin_email = get_option('admin_email', '');
                     $message = $mailer->wrap_message(
                         __('Payment successful', 'woocommerce-tcom-payway'),
-                        sprintf(__('Payment on PayWay Hrvatski Telekom is successfully completed and order status is processed.', 'woocommerce-tcom-payway'), $order->get_order_number())
+                        sprintf(__('Payment for order no. %s was successful.', 'woocommerce-tcom-payway'), $order->get_order_number())
                     );
                     $mailer->send($admin_email, sprintf(__('Payment for order no. %s was successful.', 'woocommerce-tcom-payway'), $order->get_order_number()), $message);
 

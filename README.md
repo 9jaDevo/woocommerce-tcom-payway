@@ -1,6 +1,5 @@
-/*
- * Plugin Name: PayWay Hrvatski Telekom payment gateway for WooCommerce
- * Plugin URI:  https://github.com/marinsagovac/woocommerce-tcom-payway
+
+# PayWay Hrvatski Telekom payment gateway for WooCommerce
  * Description: PayWay Hrvatski Telekom payment gateway for WooCommerce
  * Version:     1.8.6
  * Stable Tag:  1.8.6
@@ -9,13 +8,9 @@
  * License URI: http://opensource.org/licenses/MIT
  * Author:      Marin Šagovac
  * Developers:  Marin Šagovac, Matija Kovačević, Danijel Gubić, Ivan Švaljek, Micemade, 9jaDevo, Danijel-kt, nine-2-five, Chidiebere Chukwudi
- * Text Domain: woocommerce-tcom-payway
- * Domain Path: /languages
  * Contributors: marinsagovac, michaelakinwumi
- */
- 
-# PayWay Hrvatski Telekom payment gateway for WooCommerce
 
+ 
 [![build-test](https://github.com/marinsagovac/woocommerce-tcom-payway/actions/workflows/wordpress-plugin-check.yml/badge.svg?branch=master)](https://github.com/marinsagovac/woocommerce-tcom-payway/actions/workflows/wordpress-plugin-check.yml)
 
 ![Woo](assets/images/banner-1544x500.png)

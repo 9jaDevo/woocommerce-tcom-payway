@@ -167,20 +167,22 @@ class WC_TPAYWAY extends WC_Payment_Gateway
 
 
 
-    function payment_fields() {
+    function payment_fields()
+    {
         // Check if description exists and safely output it
         if ($this->description) {
             echo wpautop(wptexturize(esc_html($this->description))); // Escape description for safety
         }
     }
-    
 
-    function receipt_page($order) {
+
+    function receipt_page($order)
+    {
         // Generate the IPG form and safely output the checkout message
         echo $this->generate_ipg_form($order);
         echo '<br>' . esc_html($this->checkout_msg) . '</p>'; // Correct the closing tag from </b> to </p>
     }
-    
+
 
     private function get_hnb_currency()
     {
@@ -210,9 +212,10 @@ class WC_TPAYWAY extends WC_Payment_Gateway
      *
      * @return void
      */
-    private function update_hnb_currency() {
+    private function update_hnb_currency()
+    {
         $file = __DIR__ . '/tecajnv2.json';
-    
+
         if (!file_exists($file)) {
             // Save file content only if file doesn't exist
             global $wp_filesystem;
@@ -223,7 +226,7 @@ class WC_TPAYWAY extends WC_Payment_Gateway
             $wp_filesystem->put_contents($file, $this->get_hnb_currency());
         } else {
             clearstatcache();
-    
+
             // If file exists and is not empty
             if (filesize($file) > 0) {
                 // If file is older than a day
@@ -236,24 +239,25 @@ class WC_TPAYWAY extends WC_Payment_Gateway
             }
         }
     }
-    
 
-    private function get_last_modified_hnb_file() {
+
+    private function get_last_modified_hnb_file()
+    {
         $file = __DIR__ . '/tecajnv2.json';
-    
+
         // Check if CURL extension is available
         if (!$this->curlExtension) {
             return esc_html__("HNB conversion is disabled due to missing CURL extension.", 'woocommerce-tcom-payway');
         }
-    
+
         // Check if file exists
         if (file_exists($file)) {
             return gmdate("d.m.Y H:i:s", filemtime($file)); // Changed to gmdate
         }
-    
+
         return esc_html__("HNB rates are not fetched from server.", 'woocommerce-tcom-payway');
     }
-    
+
 
     /**
      * Retrieve currency conversion rate by currency
@@ -261,96 +265,96 @@ class WC_TPAYWAY extends WC_Payment_Gateway
      * @param string $currency
      * @return float|string
      */
-    private function fetch_hnb_currency($currency) {
+    private function fetch_hnb_currency($currency)
+    {
         $file = __DIR__ . '/tecajnv2.json';
-    
+
         // Check if the file exists before attempting to read
         if (!file_exists($file)) {
             return esc_html__("Currency data not found.", 'woocommerce-tcom-payway');
         }
-    
+
         $response = wp_remote_get($file); // Use wp_remote_get() instead of file_get_contents
         if (is_wp_error($response)) {
             return esc_html__("Error fetching file.", 'woocommerce-tcom-payway');
         }
-    
+
         $filecontents = wp_remote_retrieve_body($response);
         $jsonFile = json_decode($filecontents, true);
-    
+
         // Check for valid JSON decoding
         if (json_last_error() !== JSON_ERROR_NONE) {
             return esc_html__("Error decoding JSON data.", 'woocommerce-tcom-payway');
         }
-    
+
         // Loop through each currency and return the rate
         foreach ($jsonFile as $val) {
             if ($val['valuta'] === $currency) {
                 return floatval(str_replace(",", ".", $val['srednji_tecaj']));
             }
         }
-    
+
         // Return a default rate if the currency is not found
         return 1;
     }
-    
 
-    public function generate_ipg_form($order_id) {
-    global $wpdb;
 
-    // Get order object
-    $order = wc_get_order($order_id);
-    $currency_symbol = get_woocommerce_currency();
-    $order_total = $order->get_total();
+    public function generate_ipg_form($order_id)
+    {
+        global $wpdb;
 
-    // Define table name
-    $table_name = $wpdb->prefix . 'tpayway_ipg';
+        // Get order object
+        $order = wc_get_order($order_id);
+        $currency_symbol = get_woocommerce_currency();
+        $order_total = $order->get_total();
 
-    // Check if transaction already exists (with caching)
-    $cache_key = 'tpayway_order_' . $order_id;
-    $check_order = wp_cache_get($cache_key);
+        // Define table name
+        $table_name = $wpdb->prefix . 'tpayway_ipg';
 
-    if ($check_order === false) {
-        $sql = $wpdb->prepare("SELECT COUNT(*) FROM {$table_name} WHERE transaction_id = %s", $order_id);
-        $check_order = $wpdb->get_var($sql);
-        wp_cache_set($cache_key, $check_order, '', 3600); // Cache for 1 hour
+        // Check if transaction already exists (with caching)
+        $cache_key = 'tpayway_order_' . $order_id;
+        $check_order = wp_cache_get($cache_key);
+
+        if ($check_order === false) {
+            $sql = $wpdb->prepare("SELECT COUNT(*) FROM {$table_name} WHERE transaction_id = %s", $order_id);
+            $check_order = $wpdb->get_var($sql);
+            wp_cache_set($cache_key, $check_order, '', 3600); // Cache for 1 hour
+        }
+
+        if ($check_order > 0) {
+            $wpdb->update(
+                $table_name,
+                array(
+                    'response_code'      => '',
+                    'response_code_desc' => '',
+                    'reason_code'        => '',
+                    'amount'             => $order_total,
+                    'or_date'            => current_time('mysql'),
+                    'status'             => 0,
+                ),
+                array('transaction_id' => $order_id),
+                array('%s', '%s', '%s', '%f', '%s', '%d'),
+                array('%s')
+            );
+        } else {
+            $wpdb->insert(
+                $table_name,
+                array(
+                    'transaction_id'      => $order_id,
+                    'response_code'       => '',
+                    'response_code_desc'  => '',
+                    'reason_code'         => '',
+                    'amount'              => $order_total,
+                    'or_date'             => current_time('mysql'),
+                    'status'              => '',
+                ),
+                array('%s', '%s', '%s', '%s', '%f', '%s', '%s')
+            );
+        }
+
+        // Invalidate cache in case it changes later
+        wp_cache_delete($cache_key);
     }
-
-    if ($check_order > 0) {
-        $wpdb->update(
-            $table_name,
-            array(
-                'response_code'      => '',
-                'response_code_desc' => '',
-                'reason_code'        => '',
-                'amount'             => $order_total,
-                'or_date'            => current_time('mysql'),
-                'status'             => 0,
-            ),
-            array('transaction_id' => $order_id),
-            array('%s', '%s', '%s', '%f', '%s', '%d'),
-            array('%s')
-        );
-    } else {
-        $wpdb->insert(
-            $table_name,
-            array(
-                'transaction_id'      => $order_id,
-                'response_code'       => '',
-                'response_code_desc'  => '',
-                'reason_code'         => '',
-                'amount'              => $order_total,
-                'or_date'             => current_time('mysql'),
-                'status'              => '',
-            ),
-            array('%s', '%s', '%s', '%s', '%f', '%s', '%s')
-        );
-    }
-
-    // Invalidate cache in case it changes later
-    wp_cache_delete($cache_key);
-}
-
-    
 
 
     private function determine_language($country_code)
@@ -438,116 +442,160 @@ class WC_TPAYWAY extends WC_Payment_Gateway
         return isset($res[$id]) ? $res[$id] : __('Unknown response code', 'woocommerce-tcom-payway');
     }
 
-    public function check_tcompayway_response() {
-    if (
-        isset($_SERVER['REQUEST_METHOD']) &&
-        $_SERVER['REQUEST_METHOD'] === 'POST' &&
-        isset($_POST['payway_nonce']) &&
-        wp_verify_nonce(wp_unslash($_POST['payway_nonce']), 'payway_nonce_action')
-    ) {
-        $order_id = isset($_POST['ShoppingCartID']) ? sanitize_text_field(wp_unslash($_POST['ShoppingCartID'])) : '';
-        $amount = isset($_POST['Amount']) ? sanitize_text_field(wp_unslash($_POST['Amount'])) : 0;
-        $status = isset($_POST['Success']) ? (int) wp_unslash($_POST['Success']) : 0;
-        $reasonCode = isset($_POST['ApprovalCode']) ? (int) wp_unslash($_POST['ApprovalCode']) : 0;
+    public function check_tcompayway_response()
+    {
+        if (
+            isset($_SERVER['REQUEST_METHOD']) &&
+            $_SERVER['REQUEST_METHOD'] === 'POST' &&
+            isset($_POST['payway_nonce']) &&
+            wp_verify_nonce(wp_unslash($_POST['payway_nonce']), 'payway_nonce_action')
+        ) {
+            $order_id = isset($_POST['ShoppingCartID']) ? sanitize_text_field(wp_unslash($_POST['ShoppingCartID'])) : '';
+            $amount = isset($_POST['Amount']) ? sanitize_text_field(wp_unslash($_POST['Amount'])) : 0;
+            $status = isset($_POST['Success']) ? (int) wp_unslash($_POST['Success']) : 0;
+            $reasonCode = isset($_POST['ApprovalCode']) ? (int) wp_unslash($_POST['ApprovalCode']) : 0;
 
-        $order = wc_get_order($order_id);
-        $table_name = $wpdb->prefix . 'tpayway_ipg';
+            $order = wc_get_order($order_id);
+            $table_name = $wpdb->prefix . 'tpayway_ipg';
 
-        if (!empty($_POST['ApprovalCode']) && isset($_POST['Success']) && isset($_POST['Signature'])) {
-            if ($status === 1) {
-                global $wpdb;
+            if (!empty($_POST['ApprovalCode']) && isset($_POST['Success']) && isset($_POST['Signature'])) {
+                if ($status === 1) {
+                    global $wpdb;
 
-                $wpdb->update(
-                    $table_name,
-                    array(
-                        'response_code'      => $status,
-                        'response_code_desc' => $this->get_response_codes(0),
-                        'reason_code'        => $reasonCode,
-                        'status'             => 1,
-                    ),
-                    array('transaction_id' => $order_id),
-                    array('%d', '%s', '%d', '%d'),
-                    array('%s')
-                );
+                    $wpdb->update(
+                        $table_name,
+                        array(
+                            'response_code'      => $status,
+                            'response_code_desc' => $this->get_response_codes(0),
+                            'reason_code'        => $reasonCode,
+                            'status'             => 1,
+                        ),
+                        array('transaction_id' => $order_id),
+                        array('%d', '%s', '%d', '%d'),
+                        array('%s')
+                    );
 
-                $order->add_order_note(__('PayWay Hrvatski Telekom payment successful. Unique Id: ', 'woocommerce-tcom-payway') . $order_id);
-                WC()->cart->empty_cart();
-                $order->update_status('pending', __('Awaiting payment', 'woocommerce-tcom-payway'));
+                    $order->add_order_note(__('PayWay Hrvatski Telekom payment successful. Unique Id: ', 'woocommerce-tcom-payway') . $order_id);
+                    WC()->cart->empty_cart();
+                    $order->update_status('pending', __('Awaiting payment', 'woocommerce-tcom-payway'));
 
-                $mailer = WC()->mailer();
-                $admin_email = get_option('admin_email', '');
-                $message = $mailer->wrap_message(
-                    __('Payment successful', 'woocommerce-tcom-payway'),
-                    sprintf(__('Payment on PayWay Hrvatski Telekom is successfully completed and order status is processed.', 'woocommerce-tcom-payway'), $order->get_order_number())
-                );
-                $mailer->send($admin_email, sprintf(__('Payment for order no. %s was successful.', 'woocommerce-tcom-payway'), $order->get_order_number()), $message);
+                    $mailer = WC()->mailer();
+                    $admin_email = get_option('admin_email', '');
+                    $message = $mailer->wrap_message(
+                        __('Payment successful', 'woocommerce-tcom-payway'),
+                        sprintf(__('Payment on PayWay Hrvatski Telekom is successfully completed and order status is processed.', 'woocommerce-tcom-payway'), $order->get_order_number())
+                    );
+                    $mailer->send($admin_email, sprintf(__('Payment for order no. %s was successful.', 'woocommerce-tcom-payway'), $order->get_order_number()), $message);
 
-                $order->payment_complete();
-                wp_redirect($this->get_return_url($order));
-                exit;
+                    $order->payment_complete();
+                    wp_redirect($this->get_return_url($order));
+                    exit;
+                }
+            }
+
+            if (isset($_POST['Success'])) {
+                $responseCode = isset($_POST['ResponseCode']) ? (int) wp_unslash($_POST['ResponseCode']) : 0;
+
+                if (in_array($responseCode, [15, 16])) {
+                    $order->add_order_note($this->get_response_codes($responseCode) . " (Code $responseCode)");
+                    $order->update_status('cancelled');
+                    WC()->cart->empty_cart();
+
+                    global $wpdb;
+                    $wpdb->update(
+                        $table_name,
+                        array(
+                            'response_code'      => $responseCode,
+                            'response_code_desc' => $this->get_response_codes($responseCode),
+                            'reason_code'        => 0,
+                            'status'             => 0,
+                        ),
+                        array('transaction_id' => $order_id),
+                        array('%d', '%s', '%d', '%d'),
+                        array('%s')
+                    );
+
+                    echo '<html><meta charset="utf-8"><body><center>';
+                    echo esc_html__('A payment was not cancelled', 'woocommerce-tcom-payway') . '<br>';
+                    echo esc_html__('Reason: ', 'woocommerce-tcom-payway') . esc_html($this->get_response_codes($responseCode)) . '<br>';
+                    echo esc_html__('Order Id: ', 'woocommerce-tcom-payway') . esc_html($order_id) . '<br>';
+                    echo esc_html__('Redirecting...', 'woocommerce-tcom-payway');
+                    echo '</center><script>setTimeout(function(){ window.location.replace("' . esc_js($order->get_cancel_order_url()) . '"); },3000);</script></body></html>';
+                    exit;
+                }
+
+                if ($_POST['Success'] === "0") {
+                    $errorCodes = isset($_POST['ErrorCodes']) ? sanitize_text_field(wp_unslash(json_encode($_POST['ErrorCodes']))) : '';
+
+                    $order->update_status('failed');
+                    $order->add_order_note($this->get_response_codes($reasonCode) . " (Code $reasonCode)");
+                    WC()->cart->empty_cart();
+
+                    global $wpdb;
+                    $wpdb->update(
+                        $table_name,
+                        array(
+                            'response_code'      => 0,
+                            'response_code_desc' => $errorCodes,
+                            'reason_code'        => 0,
+                            'status'             => 0,
+                        ),
+                        array('transaction_id' => $order_id),
+                        array('%d', '%s', '%d', '%d'),
+                        array('%s')
+                    );
+
+                    echo '<html><meta charset="utf-8"><body><center>';
+                    echo esc_html__('A payment was not successful or declined', 'woocommerce-tcom-payway') . '<br>';
+                    echo esc_html__('Reason: ', 'woocommerce-tcom-payway') . esc_html($errorCodes) . '<br>';
+                    echo esc_html__('Order Id: ', 'woocommerce-tcom-payway') . esc_html($order_id) . '<br>';
+                    echo esc_html__('Redirecting...', 'woocommerce-tcom-payway');
+                    echo '</center><script>setTimeout(function(){ window.location.replace("' . esc_js($order->get_cancel_order_url()) . '"); },3000);</script></body></html>';
+                    exit;
+                }
             }
         }
+    }
 
-        if (isset($_POST['Success'])) {
-            $responseCode = isset($_POST['ResponseCode']) ? (int) wp_unslash($_POST['ResponseCode']) : 0;
 
-            if (in_array($responseCode, [15, 16])) {
-                $order->add_order_note($this->get_response_codes($responseCode) . " (Code $responseCode)");
-                $order->update_status('cancelled');
-                WC()->cart->empty_cart();
+    function get_pages($title = false, $indent = true)
+    {
+        // Fetch pages sorted by menu order
+        $wp_pages = get_pages(array('sort_column' => 'menu_order'));
+        $page_list = array();
 
-                global $wpdb;
-                $wpdb->update(
-                    $table_name,
-                    array(
-                        'response_code'      => $responseCode,
-                        'response_code_desc' => $this->get_response_codes($responseCode),
-                        'reason_code'        => 0,
-                        'status'             => 0,
-                    ),
-                    array('transaction_id' => $order_id),
-                    array('%d', '%s', '%d', '%d'),
-                    array('%s')
-                );
-
-                echo '<html><meta charset="utf-8"><body><center>';
-                echo esc_html__('A payment was not cancelled', 'woocommerce-tcom-payway') . '<br>';
-                echo esc_html__('Reason: ', 'woocommerce-tcom-payway') . esc_html($this->get_response_codes($responseCode)) . '<br>';
-                echo esc_html__('Order Id: ', 'woocommerce-tcom-payway') . esc_html($order_id) . '<br>';
-                echo esc_html__('Redirecting...', 'woocommerce-tcom-payway');
-                echo '</center><script>setTimeout(function(){ window.location.replace("' . esc_js($order->get_cancel_order_url()) . '"); },3000);</script></body></html>';
-                exit;
-            }
-
-            if ($_POST['Success'] === "0") {
-                $errorCodes = isset($_POST['ErrorCodes']) ? sanitize_text_field(wp_unslash(json_encode($_POST['ErrorCodes']))) : '';
-
-                $order->update_status('failed');
-                $order->add_order_note($this->get_response_codes($reasonCode) . " (Code $reasonCode)");
-                WC()->cart->empty_cart();
-
-                global $wpdb;
-                $wpdb->update(
-                    $table_name,
-                    array(
-                        'response_code'      => 0,
-                        'response_code_desc' => $errorCodes,
-                        'reason_code'        => 0,
-                        'status'             => 0,
-                    ),
-                    array('transaction_id' => $order_id),
-                    array('%d', '%s', '%d', '%d'),
-                    array('%s')
-                );
-
-                echo '<html><meta charset="utf-8"><body><center>';
-                echo esc_html__('A payment was not successful or declined', 'woocommerce-tcom-payway') . '<br>';
-                echo esc_html__('Reason: ', 'woocommerce-tcom-payway') . esc_html($errorCodes) . '<br>';
-                echo esc_html__('Order Id: ', 'woocommerce-tcom-payway') . esc_html($order_id) . '<br>';
-                echo esc_html__('Redirecting...', 'woocommerce-tcom-payway');
-                echo '</center><script>setTimeout(function(){ window.location.replace("' . esc_js($order->get_cancel_order_url()) . '"); },3000);</script></body></html>';
-                exit;
-            }
+        // Optionally add a title at the beginning
+        if ($title) {
+            $page_list[] = $title;
         }
+
+        foreach ($wp_pages as $page) {
+            $prefix = '';
+
+            // Indentation logic: Check for parent and apply " - " for each ancestor
+            if ($indent && $page->post_parent) {
+                $ancestors = get_post_ancestors($page->ID);
+                $prefix = str_repeat(' - ', count($ancestors));
+            }
+
+            // Add the page title with the appropriate prefix
+            $page_list[$page->ID] = $prefix . $page->post_title;
+        }
+
+        return $page_list;
+    }
+
+
+    public function sanitize(string $data): string
+    {
+        // Check if the data exists in $_POST
+        $input = isset($_POST[$data]) ? $_POST[$data] : '';
+
+        // Sanitize the input by stripping tags, removing slashes, and sanitizing text
+        return strip_tags(
+            stripslashes(
+                sanitize_text_field($input)
+            )
+        );
     }
 }

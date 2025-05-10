@@ -1,17 +1,24 @@
-name: 'build-test'
+name: "build-test"
 on: # rebuild any PRs and main branch changes
   pull_request:
   push:
     branches:
-    - master
-    - 'releases/*'
+      - master
+      - "releases/*"
 
 jobs:
   test:
     runs-on: ubuntu-latest
     steps:
-    - name: Checkout
-      uses: actions/checkout@v3
+      - name: Checkout
+        uses: actions/checkout@v3
 
-    - name: Run plugin check
-      uses: wordpress/plugin-check-action@v1
+      - name: Prepare plugin folder (exclude hidden files)
+        run: |
+          mkdir plugin-check
+          rsync -av --exclude='.*' --exclude='.*/' ./ plugin-check/
+
+      - name: Run plugin check
+        uses: wordpress/plugin-check-action@v1
+        with:
+          plugin_directory: plugin-check

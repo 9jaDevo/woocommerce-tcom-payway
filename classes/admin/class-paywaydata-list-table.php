@@ -87,14 +87,13 @@ class PayWayData_List_Table extends WP_List_Table
 	{
 		global $wpdb;
 
-		$table_name = $wpdb->prefix . 'tpayway_ipg';
-
-		// Use prepare with a dummy WHERE to comply with placeholder expectation
-		$sql = $wpdb->prepare("SELECT * FROM {$table_name} WHERE %d = %d", 1, 1);
-		$res = $wpdb->get_results($sql, ARRAY_A);
+		$table_name = esc_sql($wpdb->prefix . 'tpayway_ipg');
+		$sql        = "SELECT * FROM {$table_name}";
+		$res        = $wpdb->get_results($sql, ARRAY_A);
 
 		return $res;
 	}
+
 
 
 	/**

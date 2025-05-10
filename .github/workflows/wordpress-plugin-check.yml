@@ -13,12 +13,9 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v3
 
-      - name: Prepare plugin folder (exclude hidden files)
+      - name: Exclude hidden files
         run: |
-          mkdir plugin-check
-          rsync -av --exclude='.*' --exclude='.*/' ./ plugin-check/
+          find . -type f -name ".*" -exec rm -f {} \;
 
       - name: Run plugin check
         uses: wordpress/plugin-check-action@v1
-        with:
-          plugin_directory: plugin-check

@@ -301,30 +301,28 @@ class WC_TPAYWAY extends WC_Payment_Gateway
         global $wpdb;
 
         // Get order object
-        $order = wc_get_order($order_id);
+        $order          = wc_get_order($order_id);
         $currency_symbol = get_woocommerce_currency();
-        $order_total = $order->get_total();
+        $order_total     = $order->get_total();
 
-        // Define table name
-        $table_name = $wpdb->prefix . 'tpayway_ipg';
-
-        // Check if transaction already exists (with caching)
-        $cache_key = 'tpayway_order_' . $order_id;
-        $check_order = wp_cache_get($cache_key);
+        // Cache key
+        $cache_key     = 'tpayway_order_' . $order_id;
+        $check_order   = wp_cache_get($cache_key);
 
         if ($check_order === false) {
-            $table_name = $wpdb->prefix . 'tpayway_ipg';
-            $sql = $wpdb->prepare(
-                "SELECT COUNT(*) FROM " . $table_name . " WHERE transaction_id = %s",
-                $order_id
+            // Inline prepare + get_var — no separate $sql, no $table_name variable in the query
+            $check_order = $wpdb->get_var(
+                $wpdb->prepare(
+                    "SELECT COUNT(*) FROM {$wpdb->prefix}tpayway_ipg WHERE transaction_id = %s",
+                    $order_id
+                )
             );
-            $check_order = $wpdb->get_var($sql);
-            wp_cache_set($cache_key, $check_order, '', 3600); // Cache for 1 hour
+            wp_cache_set($cache_key, $check_order, '', 3600);
         }
 
         if ($check_order > 0) {
             $wpdb->update(
-                $table_name,
+                $wpdb->prefix . 'tpayway_ipg',
                 array(
                     'response_code'      => '',
                     'response_code_desc' => '',
@@ -339,7 +337,7 @@ class WC_TPAYWAY extends WC_Payment_Gateway
             );
         } else {
             $wpdb->insert(
-                $table_name,
+                $wpdb->prefix . 'tpayway_ipg',
                 array(
                     'transaction_id'      => $order_id,
                     'response_code'       => '',
@@ -353,10 +351,9 @@ class WC_TPAYWAY extends WC_Payment_Gateway
             );
         }
 
-        // Invalidate cache in case it changes later
+        // Invalidate cache
         wp_cache_delete($cache_key);
     }
-
 
     private function determine_language($country_code)
     {

@@ -175,14 +175,12 @@ class WC_TPAYWAY extends WC_Payment_Gateway
         }
     }
 
-
     function receipt_page($order)
     {
         // Generate the IPG form and safely output the checkout message
-        echo $this->generate_ipg_form($order);
-        echo '<br>' . esc_html($this->checkout_msg) . '</p>'; // Correct the closing tag from </b> to </p>
+        echo wp_kses_post($this->generate_ipg_form($order));
+        echo '<br>' . esc_html($this->checkout_msg) . '</p>'; // Corrected escaping
     }
-
 
     private function get_hnb_currency()
     {
@@ -202,7 +200,6 @@ class WC_TPAYWAY extends WC_Payment_Gateway
         // Return the raw content or process it as needed
         return $content;
     }
-
 
 
     /**
@@ -316,8 +313,11 @@ class WC_TPAYWAY extends WC_Payment_Gateway
         $check_order = wp_cache_get($cache_key);
 
         if ($check_order === false) {
-            $table_name_safe = esc_sql($wpdb->prefix . 'tpayway_ipg');
-            $sql = $wpdb->prepare("SELECT COUNT(*) FROM {$table_name_safe} WHERE transaction_id = %s", $order_id);
+            $table_name = $wpdb->prefix . 'tpayway_ipg';
+            $sql = $wpdb->prepare(
+                "SELECT COUNT(*) FROM " . $table_name . " WHERE transaction_id = %s",
+                $order_id
+            );
             $check_order = $wpdb->get_var($sql);
             wp_cache_set($cache_key, $check_order, '', 3600); // Cache for 1 hour
         }
@@ -482,10 +482,13 @@ class WC_TPAYWAY extends WC_Payment_Gateway
 
                     $mailer = WC()->mailer();
                     $admin_email = get_option('admin_email', '');
+                    // translators: %s is the WooCommerce order number.
                     $message = $mailer->wrap_message(
                         __('Payment successful', 'woocommerce-tcom-payway'),
-                        sprintf(__('Payment for order no. %s was successful.', 'woocommerce-tcom-payway'), $order->get_order_number())
+                        sprintf(__('Payment on PayWay Hrvatski Telekom is successfully completed and order status is processed.', 'woocommerce-tcom-payway'), $order->get_order_number())
                     );
+
+                    // translators: %s is the WooCommerce order number.
                     $mailer->send($admin_email, sprintf(__('Payment for order no. %s was successful.', 'woocommerce-tcom-payway'), $order->get_order_number()), $message);
 
                     $order->payment_complete();

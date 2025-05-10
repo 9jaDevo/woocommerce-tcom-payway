@@ -171,7 +171,7 @@ class WC_TPAYWAY extends WC_Payment_Gateway
     {
         // Check if description exists and safely output it
         if ($this->description) {
-            echo wpautop(wptexturize(esc_html($this->description))); // Escape description for safety
+            echo wp_kses_post(wpautop(wptexturize(esc_html($this->description)))); // Escape description for safety
         }
     }
 
@@ -316,7 +316,7 @@ class WC_TPAYWAY extends WC_Payment_Gateway
         $check_order = wp_cache_get($cache_key);
 
         if ($check_order === false) {
-            $sql = $wpdb->prepare("SELECT COUNT(*) FROM {$table_name} WHERE transaction_id = %s", $order_id);
+            $sql = $wpdb->prepare("SELECT COUNT(*) FROM " . $table_name . " WHERE transaction_id = %s", $order_id);
             $check_order = $wpdb->get_var($sql);
             wp_cache_set($cache_key, $check_order, '', 3600); // Cache for 1 hour
         }
@@ -592,7 +592,7 @@ class WC_TPAYWAY extends WC_Payment_Gateway
         $input = isset($_POST[$data]) ? $_POST[$data] : '';
 
         // Sanitize the input by stripping tags, removing slashes, and sanitizing text
-        return strip_tags(
+        return wp_strip_all_tags(
             stripslashes(
                 sanitize_text_field($input)
             )

@@ -1,27 +1,29 @@
 <?php
 
-if ( ! class_exists( 'WP_List_Table' ) ) {
-	require_once( ABSPATH . 'wp-admin/includes/class-wp-list-table.php' );
+if (! class_exists('WP_List_Table')) {
+	require_once(ABSPATH . 'wp-admin/includes/class-wp-list-table.php');
 }
 
-class PayWayData_List_Table extends WP_List_Table {
+class PayWayData_List_Table extends WP_List_Table
+{
 
 	/**
 	 * Prepare the items for the table to process
 	 *
 	 * @return Void
 	 */
-	public function prepare_items() {
+	public function prepare_items()
+	{
 		$columns  = $this->get_columns();
 		$hidden   = $this->get_hidden_columns();
 		$sortable = $this->get_sortable_columns();
 
 		$data = $this->table_data();
-		usort( $data, array( &$this, 'sort_data' ) );
+		usort($data, array(&$this, 'sort_data'));
 
 		$per_page     = 20;
 		$current_page = $this->get_pagenum();
-		$total_items  = count( $data );
+		$total_items  = count($data);
 
 		$this->set_pagination_args(
 			array(
@@ -30,9 +32,9 @@ class PayWayData_List_Table extends WP_List_Table {
 			)
 		);
 
-		$data = array_slice( $data, ( ( $current_page - 1 ) * $per_page ), $per_page );
+		$data = array_slice($data, (($current_page - 1) * $per_page), $per_page);
 
-		$this->_column_headers = array( $columns, $hidden, $sortable );
+		$this->_column_headers = array($columns, $hidden, $sortable);
 		$this->items           = $data;
 	}
 
@@ -41,7 +43,8 @@ class PayWayData_List_Table extends WP_List_Table {
 	 *
 	 * @return Array
 	 */
-	public function get_columns() {
+	public function get_columns()
+	{
 		$columns = array(
 			'id'                 => 'ID',
 			'transaction_id'     => 'Transaction ID',
@@ -60,7 +63,8 @@ class PayWayData_List_Table extends WP_List_Table {
 	 *
 	 * @return Array
 	 */
-	public function get_hidden_columns() {
+	public function get_hidden_columns()
+	{
 		return array();
 	}
 
@@ -69,8 +73,9 @@ class PayWayData_List_Table extends WP_List_Table {
 	 *
 	 * @return Array
 	 */
-	public function get_sortable_columns() {
-		return array( 'title' => array( 'title', false ) );
+	public function get_sortable_columns()
+	{
+		return array('title' => array('title', false));
 	}
 
 	/**
@@ -78,17 +83,19 @@ class PayWayData_List_Table extends WP_List_Table {
 	 *
 	 * @return Array
 	 */
-	private function table_data() {
+	private function table_data()
+	{
 		global $wpdb;
-
-		$res = array();
 
 		$table_name = $wpdb->prefix . 'tpayway_ipg';
 
-		$res = $wpdb->get_results( 'SELECT * FROM ' . $table_name, ARRAY_A );
+		// Use prepare with a dummy WHERE to comply with placeholder expectation
+		$sql = $wpdb->prepare("SELECT * FROM {$table_name} WHERE %d = %d", 1, 1);
+		$res = $wpdb->get_results($sql, ARRAY_A);
 
 		return $res;
 	}
+
 
 	/**
 	 * Define what data to show on each column of the table
@@ -98,8 +105,9 @@ class PayWayData_List_Table extends WP_List_Table {
 	 *
 	 * @return Mixed
 	 */
-	public function column_default( $item, $column_name ) {
-		switch ( $column_name ) {
+	public function column_default($item, $column_name)
+	{
+		switch ($column_name) {
 			case 'id':
 			case 'transaction_id':
 			case 'response_code':
@@ -107,10 +115,10 @@ class PayWayData_List_Table extends WP_List_Table {
 			case 'amount':
 			case 'or_date':
 			case 'status':
-				return $item[ $column_name ];
+				return $item[$column_name];
 
 			default:
-				return print_r( $item, true );
+				return print_r($item, true);
 		}
 	}
 
@@ -119,24 +127,25 @@ class PayWayData_List_Table extends WP_List_Table {
 	 *
 	 * @return Mixed
 	 */
-	private function sort_data( $a, $b ) {
+	private function sort_data($a, $b)
+	{
 		// Set defaults
 		$orderby = 'transaction_id';
 		$order   = 'desc';
 
 		// If orderby is set, use this as the sort column
-		if ( ! empty( $_GET['orderby'] ) ) {
+		if (! empty($_GET['orderby'])) {
 			$orderby = $_GET['orderby'];
 		}
 
 		// If order is set use this as the order
-		if ( ! empty( $_GET['order'] ) ) {
+		if (! empty($_GET['order'])) {
 			$order = $_GET['order'];
 		}
 
-		$result = strnatcmp( $a[ $orderby ], $b[ $orderby ] );
+		$result = strnatcmp($a[$orderby], $b[$orderby]);
 
-		if ( 'asc' === $order ) {
+		if ('asc' === $order) {
 			return $result;
 		}
 

@@ -4,12 +4,14 @@
  * Description: PayWay Hrvatski Telekom payment gateway for WooCommerce
  * Version:     1.8.6
  * Stable Tag:  1.8.6
+ * Tested up to: 6.7.1
  * License:     MIT
  * License URI: http://opensource.org/licenses/MIT
  * Author:      Marin Šagovac
  * Developers:  Marin Šagovac, Matija Kovačević, Danijel Gubić, Ivan Švaljek, Micemade, 9jaDevo, Danijel-kt, nine-2-five, Chidiebere Chukwudi
  * Text Domain: woocommerce-tcom-payway
  * Domain Path: /languages
+ * Contributors: marinsagovac, michaelakinwumi
  */
  
 # PayWay Hrvatski Telekom payment gateway for WooCommerce
